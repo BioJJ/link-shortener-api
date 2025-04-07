@@ -18,7 +18,7 @@ import { Url } from 'src/modules/url/entities/url.entity'
 				database: configService.get('DB_DB'),
 				synchronize: true,
 				logging: true,
-				entities: [User, Url],
+				entities: [User, Url]
 			})
 		})
 	]

@@ -1,6 +1,7 @@
 import {
 	BadRequestException,
 	Injectable,
+	Logger,
 	NotFoundException
 } from '@nestjs/common'
 import { CreateUserDto } from './dto/create-user.dto'
@@ -8,12 +9,15 @@ import { UpdateUserDto } from './dto/update-user.dto'
 import { InjectRepository } from '@nestjs/typeorm'
 import { User } from './entities/user.entity'
 import { DeepPartial, Repository } from 'typeorm'
+import { LoggerService } from '../common/middleware/logger.service'
 
 @Injectable()
 export class UsersService {
+	private readonly logged = new Logger(UsersService.name)
 	constructor(
 		@InjectRepository(User)
-		private readonly userRepository: Repository<User>
+		private readonly userRepository: Repository<User>,
+		private readonly logger: LoggerService
 	) {}
 
 	async create(createUserDto: CreateUserDto): Promise<User> {
@@ -36,6 +40,8 @@ export class UsersService {
 	}
 
 	async update(id: number, updateUserDto: UpdateUserDto) {
+		this.logger.logInfo(`Iniciando a update de usuario com id: ${id}`)
+
 		const userPartial: DeepPartial<User> =
 			this.mapUserDtoToUserPartial(updateUserDto)
 
@@ -46,6 +52,8 @@ export class UsersService {
 	}
 
 	async findAll(): Promise<User[]> {
+		this.logged.log(`Iniciando a listagem de usuarios`)
+
 		return await this.userRepository.find({
 			select: ['id', 'name', 'email', 'status', 'lastLogin'],
 			where: { status: true }
@@ -53,6 +61,7 @@ export class UsersService {
 	}
 
 	async findOne(id: number): Promise<User> {
+		this.logged.log(`Iniciando a busca de usuario com id: ${id}`)
 		const User = await this.userRepository.findOne({
 			select: ['id', 'name', 'email', 'status', 'lastLogin'],
 			where: { id }
@@ -65,6 +74,7 @@ export class UsersService {
 	}
 
 	async findEmail(email: string): Promise<User> {
+		this.logger.logInfo(`Iniciando a busca pelo email: ${email}`)
 		const user = await this.userRepository.findOne({
 			select: ['id', 'name', 'email', 'status', 'lastLogin', 'password'],
 			where: { email }
@@ -76,6 +86,7 @@ export class UsersService {
 		return user
 	}
 	async remove(id: number): Promise<void> {
+		this.logged.log(`Iniciando a deleção de usuario com id: ${id}`)
 		await this.findOne(id)
 
 		if (!id) {
@@ -85,6 +96,7 @@ export class UsersService {
 	}
 
 	private async validateEmail(email: string): Promise<boolean> {
+		this.logger.logInfo(`Iniciando a validação de e-mail: para ${email}`)
 		try {
 			const existingUser = await this.userRepository.findOne({
 				where: { email }
