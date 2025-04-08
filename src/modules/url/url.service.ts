@@ -1,17 +1,22 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CreateUrlDto } from './dto/create-url.dto'
 import { UpdateUrlDto } from './dto/update-url.dto'
 import { Url } from './entities/url.entity'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
+import { User } from '../users/entities/user.entity'
 
 @Injectable()
 export class UrlService {
+	private readonly logger = new Logger(UrlService.name)
 	constructor(
 		@InjectRepository(Url)
 		private readonly repository: Repository<Url>
 	) {}
-	async create(createUrlDto: CreateUrlDto) {
+	async create(createUrlDto: CreateUrlDto, user?: User) {
+		this.logger.log(
+			`Iniciando encurtamento da URL: ${createUrlDto.originalUrl}`
+		)
 		// Gera um código encurtado
 		const shortCode = this.generateShortCode(6)
 		// Monta a URL completa usando o código encurtado
@@ -21,8 +26,9 @@ export class UrlService {
 		const url = this.repository.create({
 			originalUrl: createUrlDto.originalUrl,
 			shortUrl: shortUrl,
-			clicks: 0, // Inicializa os cliques como 0
-			status: true // Inicializa o status como ativo
+			clicks: 0,
+			status: true,
+			user: user ? user : null
 		})
 
 		return await this.repository.save(url)
