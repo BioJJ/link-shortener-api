@@ -6,8 +6,7 @@ import {
 	Patch,
 	Param,
 	Delete,
-	Res,
-	NotFoundException
+	Req
 } from '@nestjs/common'
 import { UrlService } from './url.service'
 import { CreateUrlDto } from './dto/create-url.dto'
@@ -24,8 +23,7 @@ import { DefaultUnauthorizedResponse } from '../common/swagger/DefaultUnauthoriz
 import { DefaultForbiddenResponse } from '../common/swagger/DefaultForbiddenResponse'
 import { DefaultInternalServerErrorResponse } from '../common/swagger/DefaultInternalServerErrorResponse'
 import { Url } from './entities/url.entity'
-import { Response } from 'express'
-import { IsPublic } from 'src/auth/decorators/is-public.decorator'
+import { AuthRequest } from 'src/auth/models/AuthRequest'
 
 @Controller('url')
 @ApiTags('Urls')
@@ -36,8 +34,13 @@ export class UrlController {
 	@ApiInternalServerErrorResponse(DefaultInternalServerErrorResponse)
 	@Post()
 	@ApiBody({ type: CreateUrlDto })
-	async create(@Body() createUrlDto: CreateUrlDto) {
-		return await this.service.create(createUrlDto)
+	async create(
+		@Body() createUrlDto: CreateUrlDto,
+		@Req() request: AuthRequest
+	) {
+		const user = request.user
+		const url = await this.service.create(createUrlDto, user)
+		return url.shortUrl
 	}
 
 	@ApiUnauthorizedResponse(DefaultUnauthorizedResponse)
@@ -86,23 +89,5 @@ export class UrlController {
 	@Delete(':id')
 	async remove(@Param('id') id: string): Promise<void> {
 		return await this.service.remove(+id)
-	}
-
-
-  @IsPublic()
-	@ApiOperation({
-		summary: 'Route to redirect to the original URL',
-		description:
-			'This route allows you to access the original URL using the short code.',
-		tags: ['Url']
-	})
-	@Get('check/:shortCode')
-	async redirect(@Param('shortCode') shortCode: string, @Res() res: Response) {
-		const originalUrl = await this.service.redirect(shortCode)
-		if (originalUrl) {
-			return res.redirect(originalUrl)
-		} else {
-			throw new NotFoundException('URL not found')
-		}
 	}
 }
